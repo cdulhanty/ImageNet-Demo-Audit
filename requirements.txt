@@ -1,0 +1,4 @@
+tensorflow-gpu
+torch
+torchvision
+scikit-image

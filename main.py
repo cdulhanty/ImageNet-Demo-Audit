@@ -16,6 +16,13 @@ def main(args):
     print(args)
 
     # instantiate data loaders
+    train_dataset = CustomDataset(data_folder=train_data_folder, labels_file=train_labels_file,
+                                  dem_data_file=train_dem_data_file)
+    train_dataset_size = len(train_dataset)  # dataset_size: how many examples do we have?
+
+    val_dataset = CustomDataset(data_folder=val_data_folder, labels_file=val_labels_file,
+                                dem_data_file=val_dem_data_file)
+    val_dataset_size = len(val_dataset)  # dataset_size: how many examples do we have?
 
     # run face detection model
 
