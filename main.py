@@ -95,7 +95,7 @@ def main(main_args):
         transforms.ToTensor()
     ])
 
-    train_dataset = ImageNetTrainDataset(data_folder=main_args.root_dir, transform=train_transforms)
+    train_dataset = ImageNetTrainDataset(main_args.root_dir, transform=train_transforms)
     train_data_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, num_workers=8)
 
     """

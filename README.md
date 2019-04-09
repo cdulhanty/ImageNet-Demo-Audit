@@ -2,19 +2,12 @@
 
 ### Data Download
 
-Kaggle hosts ImageNet data at [this site](https://www.kaggle.com/c/imagenet-object-localization-challenge/overview).
+[Kaggle is the new home of the ImageNet Challenge](https://www.kaggle.com/c/imagenet-object-localization-challenge/overview).
 
-Create a Kaggle account and download the ILSVRC images [here](https://www.kaggle.com/c/imagenet-object-localization-challenge/download/imagenet_object_localization.tar.gz); extract images via:
+Create a Kaggle account and download the ILSVRC images (155 GB) [here](https://www.kaggle.com/c/imagenet-object-localization-challenge/download/imagenet_object_localization.tar.gz); extract images via:
 
  ~~~~
  tar -xzvf imagenet_object_localization.tar.gz
- ~~~~
-
-image-net.org hosts supplementary information, originally for the ILSVRC at [this site](http://www.image-net.org/challenges/LSVRC/2012/nonpub-downloads).
-
-Download the development kit for Task 1 & 2 (Classification & Classification with localization) [here](http://www.image-net.org/challenges/LSVRC/2012/nnoupb/ILSVRC2012_devkit_t12.tar.gz); extract the kit via:
- ~~~~
- tar -xzvf ILSVRC2012_devkit_t12.tar.gz
  ~~~~
 
 ### Package Installation
