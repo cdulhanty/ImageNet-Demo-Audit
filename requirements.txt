@@ -1,4 +1,10 @@
-tensorflow-gpu
+tensorflow-gpu==1.12
 torch
 torchvision
 scikit-image
+Cython
+contextlib2
+pillow
+lxml
+jupyter
+matplotlib
