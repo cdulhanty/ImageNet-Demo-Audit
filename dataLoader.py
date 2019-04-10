@@ -30,18 +30,6 @@ class ImageNetTrainDataset(Dataset):
                 self.data.append(file)
                 self.labels.append(sub_dir)
 
-        """
-
-        self.data = [f for sub_dir in os.listdir(self.data_folder) for f in
-                     os.listdir(os.path.join(self.data_folder, sub_dir)) if
-                     os.path.isfile(os.path.join(self.data_folder, (os.path.join(sub_dir, f))))]
-
-        self.labels = [sub_dir for sub_dir in os.listdir(self.data_folder) for _ in
-                       range(len([f for f in os.listdir(os.path.join(self.data_folder, sub_dir)) if
-                       os.path.isfile(os.path.join(self.data_folder, (os.path.join(sub_dir, f))))])) if
-                       os.path.isdir(os.path.join(self.data_folder, sub_dir))]
-        """
-
         assert len(self.data) == len(self.labels)  # ensure the list comprehensions above worked!
 
         with open(ID_TO_CLASS_FILE) as f:
