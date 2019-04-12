@@ -100,3 +100,12 @@ ENV/
 
 # weird local files
 .idea/*
+
+# datsets
+FaceBoxes/data/FDDB/images/*
+
+# predictions
+inference/*
+
+# weight files
+*.h5

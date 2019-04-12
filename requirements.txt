@@ -4,3 +4,4 @@ scikit-image
 opencv-python
 Cython
 numpy
+keras
