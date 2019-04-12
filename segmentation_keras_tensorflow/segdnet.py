@@ -9,9 +9,11 @@ T_G_SEED = 1337
 
 T_G_CHUNKSIZE = 5000
 
-USAGE_LEARN = 'Usage: \n\t -learn <Train Images (TXT)> <Train Masks (TXT)> <Val Images (TXT)> <Val Masks (TXT)> ' \
-              '<batch size> <num epochs> <output model prefix> <option: load weights from...> \n\t -extract ' \
-              '<Model Prefix> <Input Image List (TXT)> <Output File (TXT)> \n\t\tBuilds and scores a model '
+USAGE_LEARN = 'Usage: \n\t ' \
+              '-learn <Train Images (TXT)> <Train Masks (TXT)> <Val Images (TXT)> <Val Masks (TXT)> ' \
+              '<batch size> <num epochs> <output model prefix> <option: load weights from...> \n\t' \
+              '-extract <Model Prefix> <Input Image List (TXT)> <Output File (TXT)> \n\t\t' \
+              'Builds and scores a model'
 
 # Misc. Necessities
 import sys
