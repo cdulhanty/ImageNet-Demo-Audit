@@ -10,8 +10,12 @@ __license__ = "MIT"
 import argparse
 import json
 import os
+from keras.models import model_from_json
 
-training_root = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
+TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
+MODEL_JSON_FILE = 'segmentation_keras_tensorflow/skinseg.json'
+MODEL_WEIGHTS_FILE = 'segmentation_keras_tensorflow/skinseg.h5'
+
 
 def main(args):
 
@@ -20,9 +24,17 @@ def main(args):
 
     # prepare the skin detection model
 
+    with open(MODEL_JSON_FILE) as f:
+        architecture = f.read()
+        model = model_from_json(architecture)
+
+    # model = model_from_json(MODEL_JSON_FILE)
+    model.load_weights(MODEL_WEIGHTS_FILE, by_name=True)
+    model.summary()
+
     for filename in dets_dict.keys():
 
-        filepath = os.path.join(training_root, filename)
+        filepath = os.path.join(TRAINING_ROOT, filename)
 
         # open file
 
@@ -34,13 +46,8 @@ def main(args):
 
         # sample x points, calculate the ITA for the face, append value to the dict
 
-
-
-
-
-    """ Main entry point of the app """
-    print("hello world")
-    print(args)
+    print('goodbye')
+    return
 
 
 if __name__ == "__main__":
@@ -48,27 +55,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # Required positional argument
-    parser.add_argument("arg", help="Required positional argument")
-
-    # Optional argument flag which defaults to False
-    parser.add_argument("-f", "--flag", action="store_true", default=False)
-
-    # Optional argument which requires a parameter (eg. -d test)
-    parser.add_argument("-n", "--name", action="store", dest="name")
-
-    # Optional verbosity counter (eg. -v, -vv, -vvv, etc.)
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="count",
-        default=0,
-        help="Verbosity (-v, -vv, etc)")
-
-    # Specify output of "--version"
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="%(prog)s (version {version})".format(version=__version__))
+    # parser.add_argument("arg", help="Required positional argument")
 
     args = parser.parse_args()
     main(args)

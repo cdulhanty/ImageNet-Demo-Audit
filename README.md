@@ -34,7 +34,10 @@ tar -xzvf imagenet_object_localization.tar.gz
 
 ### Skin Segmentation via  
 
-
+~~~~
+git clone https://github.com/noelcodella/segmentation-keras-tensorflow.git
+rndir segmentation-keras-tensorflow segmentation_keras_tensorflow
+~~~~
 
 
 - Age Estimation via DEX
