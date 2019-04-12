@@ -20,7 +20,6 @@ def main(args):
 
     # prepare the skin detection model
 
-
     for filename in dets_dict.keys():
 
         filepath = os.path.join(training_root, filename)
