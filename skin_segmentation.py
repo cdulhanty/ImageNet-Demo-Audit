@@ -9,7 +9,6 @@ __license__ = "MIT"
 
 import argparse
 import json
-import time
 import os
 from keras.models import model_from_json
 import numpy as np
@@ -21,12 +20,12 @@ MODEL_JSON_FILE = 'segmentation_keras_tensorflow/skinseg.json'
 MODEL_WEIGHTS_FILE = 'segmentation_keras_tensorflow/skinseg.h5'
 OUTFILE = 'inference/ITA.txt'
 
-DETECTION_THRESHOLD = 0.9
+DETECTION_THRESHOLD = 0.9  # TODO - determine the optimal level (TP/FP on diff groups?)
 
 WIDTH = 224
 HEIGHT = 224
 N_CHANNELS = 3
-INFERENCE_BATCH_SIZE = 1
+INFERENCE_BATCH_SIZE = 512
 
 
 def ITA(pixel):
@@ -114,47 +113,52 @@ def main(args):
         for image in sorted(dataset_dict['synsets'][synset]['images'].keys()):
             for face in dataset_dict['synsets'][synset]['images'][image]['faces']:
 
-                if face['score'] > DETECTION_THRESHOLD:
+                if face['score'] > DETECTION_THRESHOLD:  # TODO - should we reject any small faces ('w' < 20 or 'h' < 20)??
 
                     filepath = os.path.join(TRAINING_ROOT, os.path.join(synset, image))
                     batch_list.append((filepath, face))
 
                     if len(batch_list) == INFERENCE_BATCH_SIZE:
 
-                        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
-
                         print('Batch', batch_no, 'of', n_batches)
+                        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
+                        skin_masks = model.predict(image_batch)  # run the skin segmentation model
 
-                        preds = model.predict(image_batch)  # run the skin segmentation model
+                        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
 
-                        for pred, cie_lab_image in zip(preds, cie_lab_image_batch):
-
-                            print(pred.shape, cie_lab_image.shape)
-
-                            # sample x points, calculate the ITA for the face, append value to the dict
+                            # TODO - run the dlib function?
+                            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
+                            # TODO - add calculated ITA value to the dataset_dict
+                            pass
 
                         batch_no += 1
                         batch_list = []
 
-                        return
+                        del image_batch
+                        del cie_lab_image_batch
+                        del skin_masks
 
     if len(batch_list) > 0:
-        # send to read_images
-        image_batch = read_image_batch(batch_list)
 
-        # run the skin detection
-        #preds = model.predict(image_batch)
+        print('Batch', batch_no, 'of', n_batches)
+        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
+        skin_masks = model.predict(image_batch)  # run the skin segmentation model
 
-        # convert to CIE Lab space
+        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
+            # TODO - run the dlib function?
+            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
+            # TODO - add calculated ITA value to the dataset_dict
+            pass
 
-        # sample x points, calculate the ITA for the face, append value to the dict
+        del image_batch
+        del cie_lab_image_batch
+        del skin_masks
 
     print('goodbye')
     return
 
 
 if __name__ == "__main__":
-    """ This is executed when run from the command line """
     parser = argparse.ArgumentParser()
 
     # Required positional argument
