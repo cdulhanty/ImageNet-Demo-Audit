@@ -9,68 +9,82 @@ __license__ = "MIT"
 
 import argparse
 import json
+import time
 import os
 from keras.models import model_from_json
 import numpy as np
+import cv2
+from keras.applications.densenet import preprocess_input
 
 TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
 MODEL_JSON_FILE = 'segmentation_keras_tensorflow/skinseg.json'
 MODEL_WEIGHTS_FILE = 'segmentation_keras_tensorflow/skinseg.h5'
 OUTFILE = 'inference/ITA.txt'
 
-DETECTION_THRESHOLD = 0.40
+DETECTION_THRESHOLD = 0.9
 
 WIDTH = 224
 HEIGHT = 224
 N_CHANNELS = 3
-INFERENCE_BATCH_SIZE = 1028
+INFERENCE_BATCH_SIZE = 1
 
 
-def read_image(loc):  # loads an image and pre-processes
+def ITA(pixel):
 
-    t_image = cv2.imread(loc)
-    t_image = cv2.resize(t_image, (HEIGHT, WIDTH))
-    t_image = t_image.astype("float32")
-    t_image = keras.applications.densenet.preprocess_input(t_image, data_format='channels_last')
+    # TODO - might actually pass in something like (1, 1, 1) - need to extract the correct value from this
 
-    return t_image
+    L = pixel[0]
+    a = pixel[1]
+    b = pixel[2]
 
-
-def norm_image(img):  # normalizes and image
-    new_img = (img - np.amin(img)) / (np.amax(img) - np.amin(img))
-
-    return new_img
+    return (np.arctan((L - 50)/b) * 180)/np.pi
 
 
-def read_image_list(flist, start, length, color=1, norm=0):  # loads a set of images from a text index file
+def read_image_batch(batch_list):
 
-    with open(flist) as f:
-        content = f.readlines()
-    content = [x.strip().split()[0] for x in content]
+    batch_size = len(batch_list)
+    image_batch = np.zeros((batch_size, HEIGHT, WIDTH, N_CHANNELS))
+    cie_lab_image_batch = np.zeros((batch_size, HEIGHT, WIDTH, N_CHANNELS))
 
-    datalen = length
-    if (datalen < 0):
-        datalen = len(content)
+    for i, image_details in enumerate(batch_list):
 
-    if (start + datalen > len(content)):
-        datalen = len(content) - start
+        image, cie_lab_image = read_image(image_details)
+        image_batch[i] = image
+        cie_lab_image_batch[i] = cie_lab_image
 
-    if (color == 1):
-        imgset = np.zeros((datalen, T_G_HEIGHT, T_G_WIDTH, T_G_NUMCHANNELS))
-    else:
-        imgset = np.zeros((datalen, T_G_HEIGHT, T_G_WIDTH, 1))
+    return image_batch, cie_lab_image_batch
 
-    for i in range(start, start+datalen):
-        if ((i-start) < len(content)):
-            val = t_read_image(content[i])
-            if (color == 0):
-                val = val[:,:,0]
-                val = np.expand_dims(val,2)
-            imgset[i-start] = val
-            if (norm == 1):
-                imgset[i-start] = (t_norm_image(imgset[i-start]) * 1.0 + 0.0)
 
-    return imgset
+def read_image(image_details):  # loads an image and pre-processes
+
+    image_path = image_details[0]
+    details = image_details[1]
+
+    img = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    img_height, img_width, img_channels = img.shape
+
+    # add a 50% buffer to the face crop
+    x_add = int(np.round(0.5 * details['w']))
+    y_add = int(np.round(0.5 * details['h']))
+
+    # TODO - add a buffer if the image goes out of range, b/c making it smaller messes up the image when resizing
+    xmin = int(np.round(details['xmin'] - x_add)) if int(np.round(details['xmin'] - x_add)) > 0 else 0
+    ymin = int(np.round(details['ymin'] - y_add)) if int(np.round(details['ymin'] - y_add)) > 0 else 0
+    xmax = xmin + int(np.round(details['w'] + 2*x_add)) if xmin + int(np.round(details['w'] + 2*x_add)) < img_width else img_width
+    ymax = ymin + int(np.round(details['h'] + 2*y_add)) if ymin + int(np.round(details['h'] + 2*y_add)) < img_height else img_height
+
+    face = img[ymin:ymax, xmin:xmax].copy()
+    cie_lab_face = face.copy()
+
+    face = cv2.resize(face, (HEIGHT, WIDTH))  # TODO resize in a better way (keep the aspect ratio?)
+    face = face.astype("float32")
+    face = preprocess_input(face, data_format='channels_last')
+
+    cie_lab_face = cv2.cvtColor(cie_lab_face, cv2.COLOR_RGB2LAB)
+    cie_lab_face = cv2.resize(cie_lab_face, (HEIGHT, WIDTH))
+    cie_lab_face = cie_lab_face.astype("float32")
+
+    return face, cie_lab_face
 
 
 def main(args):
@@ -78,11 +92,11 @@ def main(args):
     with open('inference/ILSVRC2012_training_dets.json') as f:
         dataset_dict = json.load(f)
 
-    # count the number of valid faces
+    # count the number of valid face detections
     n_valid_dets = 0
-    for synset in dataset_dict['synsets']:
-        for image in synset['images']:
-            for face in image['faces']:
+    for synset in sorted(dataset_dict['synsets'].keys()):
+        for image in sorted(dataset_dict['synsets'][synset]['images'].keys()):
+            for face in dataset_dict['synsets'][synset]['images'][image]['faces']:
                 if face['score'] > DETECTION_THRESHOLD:
                     n_valid_dets += 1
 
@@ -94,37 +108,42 @@ def main(args):
 
     n_batches = int(np.ceil(n_valid_dets/float(INFERENCE_BATCH_SIZE)))
 
-    i = 0
-    j = 0
-    k = 0
-    for i in range(n_batches):
-        n = 0
-        if i < len(dataset_dict['synsets'].keys()):
-            if j < len(dataset_dict['synsets']['images'].keys()):
-                if k < len(dataset_dict['synsets']['images']['faces']):
+    batch_no = 1
+    batch_list = []
+    for synset in sorted(dataset_dict['synsets'].keys()):
+        for image in sorted(dataset_dict['synsets'][synset]['images'].keys()):
+            for face in dataset_dict['synsets'][synset]['images'][image]['faces']:
 
+                if face['score'] > DETECTION_THRESHOLD:
 
-                    pass
-                k+=1
-            j+=1
-        i+=1
+                    filepath = os.path.join(TRAINING_ROOT, os.path.join(synset, image))
+                    batch_list.append((filepath, face))
 
+                    if len(batch_list) == INFERENCE_BATCH_SIZE:
 
-        imgs = read_image_list(dets_dict.keys(), i * INFERENCE_BATCH_SIZE, INFERENCE_BATCH_SIZE)
+                        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
 
-        preds = model.predict(imgs)
+                        print('Batch', batch_no, 'of', n_batches)
 
+                        preds = model.predict(image_batch)  # run the skin segmentation model
 
+                        for pred, cie_lab_image in zip(preds, cie_lab_image_batch):
 
-    for filename in dets_dict.keys():
+                            print(pred.shape, cie_lab_image.shape)
 
-        filepath = os.path.join(TRAINING_ROOT, filename)
+                            # sample x points, calculate the ITA for the face, append value to the dict
 
-        # open file
+                        batch_no += 1
+                        batch_list = []
 
-        # iterate over the number of images in the detections that are above a threshold (0.4?)
+                        return
+
+    if len(batch_list) > 0:
+        # send to read_images
+        image_batch = read_image_batch(batch_list)
 
         # run the skin detection
+        #preds = model.predict(image_batch)
 
         # convert to CIE Lab space
 
