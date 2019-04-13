@@ -33,10 +33,8 @@ N_CHANNELS = 3
 
 def segmentation_metrics(y_true, y_pred):
 
-    y_true = np.array(y_true)
-    y_pred = np.array(y_pred)
-
-    print(y_true.shape, y_pred.shape)
+    y_true = np.concatenate(y_true, axis=0)
+    y_pred = np.concatenate(y_pred, axis=0)
 
     precision, recall, thresholds = precision_recall_curve(y_true, y_pred, pos_label=1)
 
@@ -80,13 +78,12 @@ def main(args):
     mask_filenames = sorted([f for f in os.listdir(MASKS_ROOT) if os.path.isfile(os.path.join(MASKS_ROOT, f))])
 
     # TODO Train / Test Split? (Is there a standard split?)
-
     y_pred = []
     y_true = []
 
     for example_no, (example_filename, mask_filename) in enumerate(zip(example_filenames, mask_filenames)):
 
-        example_filepath = os.path.join(EXAMPLES_ROOT, example_filename)
+        example_filepath = os.path.join(EXAMPLES_ROOT, example_filename)  # load the image file
         image = cv2.imread(example_filepath, cv2.IMREAD_COLOR)
 
         img_width, img_height, img_channels = image.shape
@@ -98,9 +95,6 @@ def main(args):
 
         pred_mask = model.predict(image)[0]  # run the segmentation mask model
         pred_mask = cv2.resize(pred_mask, (img_height, img_width))  # resize to the original dimensions
-
-        print(pred_mask.flatten().shape)
-
         y_pred.append(pred_mask.flatten())
 
         mask_filepath = os.path.join(MASKS_ROOT, mask_filename)  # load the ground truth mask
@@ -109,10 +103,7 @@ def main(args):
         mask /= 255  # make binary
         mask = 1 - mask  # flip
 
-        print(mask.flatten().shape)
-
         y_true.append(mask.flatten())
-        return
 
     precision, recall, f1, accuracy, jaccard = segmentation_metrics(y_true, y_pred)
 
@@ -131,8 +122,6 @@ def main(args):
 
     dataset_dict[example_filename] = image_dict
     """
-    print('precision', np.mean(precision_list), 'recall', np.mean(recall_list), 'f1', np.mean(f1_list),
-          'acc', np.mean(accuracy_list), 'jaccard', np.mean(jaccard_list))
 
     # log to a json file TODO
 
