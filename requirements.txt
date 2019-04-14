@@ -6,3 +6,4 @@ Cython
 numpy
 keras
 sklearn
+pandas

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Apparent Age and Gender Estimation Model
+Apparent Gender Estimation Model
 """
 
 __author__ = "Chris Dulhanty"

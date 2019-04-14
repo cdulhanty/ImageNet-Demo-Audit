@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 import random
-from ..utils.box_utils import matrix_iof
+#from ..utils import box_utils
+from utils import box_utils
 
 
 def _crop(image, boxes, labels, img_dim):
@@ -27,7 +28,7 @@ def _crop(image, boxes, labels, img_dim):
             t = random.randrange(height - h)
         roi = np.array((l, t, l + w, t + h))
 
-        value = matrix_iof(boxes, roi[np.newaxis])
+        value = box_utils.matrix_iof(boxes, roi[np.newaxis])
         flag = (value >= 1)
         if not flag.any():
             continue

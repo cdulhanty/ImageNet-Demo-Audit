@@ -1,0 +1,57 @@
+data/detections/PASCAL/Ours_Baseline.txt.d
+data/detections/fddb/Viola JonesDiscROC.txt.i
+data/annotations/anno2.mat.i
+data/detections/PASCAL/Ours_Baseline.txt.i
+data/annotations/new_annotations_AFW.mat.i
+data/detections/fddb/OlaworksDiscROC.txt.i
+data/detections/AFW/TSM.ramananmat.i
+data/detections/fddb/Li et al.DiscROC.txt.i
+data/detections/AFW/Shen_et_al..shenmat.i
+data/detections/fddb/IlluxtechDiscROC.txt.i
+data/detections/AFW/Structured_models.mat.i
+data/detections/PASCAL/Face++.txt.i
+data/detections/fddb/Face++DiscROC.txt.i
+data/detections/PASCAL/TSM.mat.d
+data/detections/AFW/Ours_Headhunter.txt.i
+data/detections/PASCAL/TSM.mat.i
+data/annotations/Annotations_Face_PASCALLayout_large.mat.i
+data/detections/fddb/Structured ModelsDiscROC.txt.i
+data/loadData.py.i
+data/detections/AFW/Picasa.csv.i
+data/detections/PASCAL/Ours_Headhunter.txt.i
+data/detections/AFW/Baseline.txt.i
+data/detections/fddb/PEP-AdaptDiscROC.txt.i
+data/detections/fddb/XZJY_DiscROC.txt.i
+data/plot_AP.py.i
+data/detections/fddb/Segui et al.DiscROC.txt.i
+data/detections/AFW/Baseline.txt.d
+data/plot_AP_fddb.py.i
+data/detections/fddb/TSMDiscROC.txt.i
+data/detections/fddb/Jain et al. [15]DiscROC.txt.i
+data/detections/fddb/Ours SquaresChnFtrs-5DiscROC.txt.i
+data/detections/PASCAL/Sky_Biometry.mat.i
+data/detections/AFW/Face++.txt.i
+data/.hgignore.i
+data/detections/AFW/DPM.txt.i
+data/detections/fddb/DPMDiscROC.txt.i
+data/detections/fddb/SURF Cascade multiview[6]DiscROC.txt.i
+data/getColorLabel.py.i
+data/detections/PASCAL/OpenCV.mat.i
+data/detections/AFW/Face.com.ramananmat.i
+data/detections/PASCAL/WS_Boosting.mat.i
+data/detections/fddb/DPMDiscROC.txt.d
+data/detections/AFW/DPM.txt.d
+data/database.py.i
+data/detections/fddb/Ours HeadHunterDiscROC.txt.i
+data/detections/PASCAL/Structured_models.mat.i
+data/util.py.i
+data/detections/PASCAL/Picasa.mat.i
+data/README.md.i
+data/detections/fddb/Subburaman et al.DiscROC.txt.i
+data/detections/fddb/Shen RetrievalDiscROC.txt.i
+data/detections/fddb/Mikolajczyk et al.DiscROC.txt.d
+data/requirements.txt.i
+data/detections/fddb/Mikolajczyk et al.DiscROC.txt.i
+data/VOCpr.py.i
+data/annotations/Annotations_Face_PASCALLayout_large_fixed.mat.i
+data/detections/PASCAL/DPM.txt.i
