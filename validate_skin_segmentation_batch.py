@@ -33,7 +33,10 @@ N_CHANNELS = 3
 
 def segmentation_metrics(y_true, y_pred):
 
-    precision, recall, thresholds = precision_recall_curve(y_true.flatten(), y_pred.flatten(), pos_label=1)
+    y_true = np.concatenate(y_true, axis=0)
+    y_pred = np.concatenate(y_pred, axis=0)
+
+    precision, recall, thresholds = precision_recall_curve(y_true, y_pred, pos_label=1)
 
     best_precision = 0
     best_recall = 0
@@ -74,12 +77,8 @@ def main(args):
     mask_filenames = sorted([f for f in os.listdir(MASKS_ROOT) if os.path.isfile(os.path.join(MASKS_ROOT, f))])
 
     # TODO Train / Test Split? (Is there a standard split?)
-    p_list = []
-    r_list = []
-    f_list = []
-    a_list = []
-    j_list = []
-    t_list = []
+    y_pred = []
+    y_true = []
 
     for example_no, (example_filename, mask_filename) in enumerate(zip(example_filenames, mask_filenames)):
 
@@ -98,6 +97,7 @@ def main(args):
 
         pred_mask = model.predict(image)[0]  # run the segmentation mask model
         pred_mask = cv2.resize(pred_mask, (img_height, img_width))  # resize to the original dimensions
+        y_pred.append(pred_mask.flatten())
 
         mask_filepath = os.path.join(MASKS_ROOT, mask_filename)  # load the ground truth mask
         mask = cv2.imread(mask_filepath, cv2.IMREAD_GRAYSCALE)
@@ -105,17 +105,14 @@ def main(args):
         mask /= 255  # make binary
         mask = 1 - mask  # flip
 
-        precision, recall, f1, accuracy, jaccard, threshold = segmentation_metrics(mask, pred_mask)
+        y_true.append(mask.flatten())
 
-        p_list.append(precision)
-        r_list.append(recall)
-        f_list.append(f1)
-        a_list.append(accuracy)
-        j_list.append(jaccard)
-        t_list.append(threshold)
+        if example_no >= 500:
+            break
 
-    print('precision', np.mean(p_list), 'recall', np.mean(r_list), 'f1', np.mean(f_list),
-          'acc', np.mean(a_list), 'jaccard', np.mean(t_list), 'threshold', np.mean(t_list))
+    precision, recall, f1, accuracy, jaccard, threshold = segmentation_metrics(y_true, y_pred)
+
+    print('precision', precision, 'recall', recall, 'f1', f1, 'acc', accuracy, 'jaccard', jaccard, 'threshold', threshold)
 
     """
     image_dict = {}
