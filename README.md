@@ -39,7 +39,10 @@ git clone https://github.com/noelcodella/segmentation-keras-tensorflow.git
 rndir segmentation-keras-tensorflow segmentation_keras_tensorflow
 ~~~~
 
+## Apparent Age and Gender Estimation via [DEX](https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/)
 
-- Age Estimation via DEX
+Download the pre-trained age and gender estimation models, convert to PyTorch
 
+Via this link: https://colab.research.google.com/drive/1l4Z7_IjTG7Z1KpmhyWFEWlozxM9CvJn_
 
+Download [age.py, age.npy. gender.py, gender.npy]

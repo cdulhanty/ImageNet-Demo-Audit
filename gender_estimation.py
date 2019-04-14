@@ -1,57 +1,59 @@
 #!/usr/bin/env python3
 """
-Skin Segmentation and ITA Calculation Model
+Apparent Age and Gender Estimation Model
 """
 
 __author__ = "Chris Dulhanty"
 __version__ = "0.1.0"
 __license__ = "MIT"
 
+import torch
+import imp
 import argparse
 import json
 import os
-from keras.models import model_from_json
 import numpy as np
 import cv2
-from keras.applications.densenet import preprocess_input
 
 TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
-MODEL_JSON_FILE = 'segmentation_keras_tensorflow/skinseg.json'
-MODEL_WEIGHTS_FILE = 'segmentation_keras_tensorflow/skinseg.h5'
-OUTFILE = 'inference/ITA.txt'
+GENDER_MODEL_PY_FILE =  '/media/chris/Mammoth/DEX/gender.py'
+GENDER_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/gender.pth'
+
+OUTFILE = 'inference/gender.txt'
+
+GenderModel = imp.load_source('MainModel', GENDER_MODEL_PY_FILE)
 
 DETECTION_THRESHOLD = 0.9  # TODO - determine the optimal level (TP/FP on diff groups?)
+FACE_BUFFER = 0.4
 
 WIDTH = 224
 HEIGHT = 224
 N_CHANNELS = 3
-INFERENCE_BATCH_SIZE = 512
+INFERENCE_BATCH_SIZE = 10  # TODO
 
 
-def ITA(pixel):
-
-    # TODO - might actually pass in something like (1, 1, 1) - need to extract the correct value from this
-
-    L = pixel[0]
-    a = pixel[1]
-    b = pixel[2]
-
-    return (np.arctan((L - 50)/b) * 180)/np.pi
+def expectation(outputs):
+    outputs = outputs.detach().numpy().tolist()
+    ages = []
+    for output in outputs:
+        sum = 0
+        for age, prob in enumerate(output):
+            sum += age*prob
+        ages.append(sum)
+    return ages
 
 
 def read_image_batch(batch_list):
 
     batch_size = len(batch_list)
-    image_batch = np.zeros((batch_size, HEIGHT, WIDTH, N_CHANNELS))
-    cie_lab_image_batch = np.zeros((batch_size, HEIGHT, WIDTH, N_CHANNELS))
+    image_batch = np.zeros((batch_size, N_CHANNELS, HEIGHT, WIDTH))
 
     for i, image_details in enumerate(batch_list):
 
-        image, cie_lab_image = read_image(image_details)
+        image = read_image(image_details)
         image_batch[i] = image
-        cie_lab_image_batch[i] = cie_lab_image
 
-    return image_batch, cie_lab_image_batch
+    return image_batch
 
 
 def read_image(image_details):  # loads an image and pre-processes
@@ -62,9 +64,9 @@ def read_image(image_details):  # loads an image and pre-processes
     img = cv2.imread(image_path, cv2.IMREAD_COLOR)
     img_height, img_width, img_channels = img.shape
 
-    # add a 50% buffer to the face crop
-    x_add = int(np.round(0.5 * details['w']))
-    y_add = int(np.round(0.5 * details['h']))
+    # add a buffer to the face crop
+    x_add = int(np.round(FACE_BUFFER * details['w']))
+    y_add = int(np.round(FACE_BUFFER * details['h']))
 
     # TODO - add a buffer if the image goes out of range, b/c making it smaller messes up the image when resizing
     xmin = int(np.round(details['xmin'] - x_add)) if int(np.round(details['xmin'] - x_add)) > 0 else 0
@@ -73,20 +75,20 @@ def read_image(image_details):  # loads an image and pre-processes
     ymax = ymin + int(np.round(details['h'] + 2*y_add)) if ymin + int(np.round(details['h'] + 2*y_add)) < img_height else img_height
 
     face = img[ymin:ymax, xmin:xmax].copy()
-    cie_lab_face = face.copy()
+
+    # TODO face alignment here - with DLIB?
 
     face = cv2.resize(face, (HEIGHT, WIDTH))  # TODO resize in a better way (keep the aspect ratio?)
     face = face.astype("float32")
-    face = preprocess_input(face, data_format='channels_last')
+    face -= [104, 117, 124]  # ImageNet mean subtraction
+    face = np.moveaxis(face, 2, 0)
 
-    cie_lab_face = cv2.cvtColor(cie_lab_face, cv2.COLOR_RGB2LAB)
-    cie_lab_face = cv2.resize(cie_lab_face, (HEIGHT, WIDTH))
-    cie_lab_face = cie_lab_face.astype("float32")
-
-    return face, cie_lab_face
+    return face
 
 
 def main(args):
+
+    device = "cuda:0"
 
     with open('inference/ILSVRC2012_training_dets.json') as f:
         dataset_dict = json.load(f)
@@ -99,11 +101,10 @@ def main(args):
                 if face['score'] > DETECTION_THRESHOLD:
                     n_valid_dets += 1
 
-    # prepare the skin detection model
-    with open(MODEL_JSON_FILE) as f:
-        architecture = f.read()
-        model = model_from_json(architecture)
-    model.load_weights(MODEL_WEIGHTS_FILE, by_name=True)
+    # prepare the apparent gender model
+    gender_model = torch.load(GENDER_MODEL_PTH_FILE)  # 0 for female, 1 for male
+    gender_model.eval()
+    gender_model.to(device)
 
     n_batches = int(np.ceil(n_valid_dets/float(INFERENCE_BATCH_SIZE)))
 
@@ -121,38 +122,30 @@ def main(args):
                     if len(batch_list) == INFERENCE_BATCH_SIZE:
 
                         print('Batch', batch_no, 'of', n_batches)
-                        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
-                        skin_masks = model.predict(image_batch)  # run the skin segmentation model
+                        image_batch = read_image_batch(batch_list)
+                        image_batch = torch.from_numpy(image_batch).type(torch.FloatTensor)
+                        image_batch = image_batch.to(device)
 
-                        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
+                        gender_outputs = gender_model(image_batch)
 
-                            # TODO - run the dlib function?
-                            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
-                            # TODO - add calculated ITA value to the dataset_dict
-                            pass
+                        print(expectation(gender_outputs.cpu()))
+                        return
+                        # TODO run the apparent age and gender model here
 
                         batch_no += 1
                         batch_list = []
 
                         del image_batch
-                        del cie_lab_image_batch
-                        del skin_masks
 
     if len(batch_list) > 0:
-
         print('Batch', batch_no, 'of', n_batches)
-        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
-        skin_masks = model.predict(image_batch)  # run the skin segmentation model
+        image_batch = read_image_batch(batch_list)
+        # TODO run the apparent age and gender model here
 
-        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
-            # TODO - run the dlib function?
-            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
-            # TODO - add calculated ITA value to the dataset_dict
-            pass
+        batch_no += 1
+        batch_list = []
 
         del image_batch
-        del cie_lab_image_batch
-        del skin_masks
 
     print('goodbye')
     return
