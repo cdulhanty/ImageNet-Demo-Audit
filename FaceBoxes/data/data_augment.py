@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import random
-#from ..utils import box_utils
-from utils import box_utils
+from ..utils import box_utils
+#from utils import box_utils
 
 
 def _crop(image, boxes, labels, img_dim):

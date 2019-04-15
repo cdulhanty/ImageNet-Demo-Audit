@@ -19,7 +19,7 @@ TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVR
 GENDER_MODEL_PY_FILE =  '/media/chris/Mammoth/DEX/gender.py'
 GENDER_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/gender.pth'
 
-OUTFILE = 'inference/gender.txt'
+OUTFILE = 'inference/ImageNet_gender.txt'
 
 GenderModel = imp.load_source('MainModel', GENDER_MODEL_PY_FILE)
 
@@ -34,13 +34,13 @@ INFERENCE_BATCH_SIZE = 10  # TODO
 
 def expectation(outputs):
     outputs = outputs.detach().numpy().tolist()
-    ages = []
+    preds = []
     for output in outputs:
         sum = 0
-        for age, prob in enumerate(output):
-            sum += age*prob
-        ages.append(sum)
-    return ages
+        for pred, prob in enumerate(output):
+            sum += pred*prob
+        preds.append(sum)
+    return preds
 
 
 def read_image_batch(batch_list):
