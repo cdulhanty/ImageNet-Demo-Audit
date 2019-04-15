@@ -20,9 +20,9 @@ from FaceBoxes.utils.box_utils import decode
 from FaceBoxes.data import cfg
 from FaceBoxes.utils.nms_wrapper import nms
 
-PERSON_SYNSET_LIST = 'ILSVRC_files/person_synset.txt'
+PERSON_SYNSET_LIST = 'ILSVRC_files/person_synsets.txt'
 ROOT_DIR = '/media/chris/Mammoth/imagenet/'
-OUTFILE = 'inference/ImageNet_person_dets'
+OUTFILE = 'inference/ImageNet_person_synset'
 
 FACEBOXES_WEIGHTS_PATH = 'FaceBoxes/weights/FaceBoxes.pth'
 RESIZE = 1.0
@@ -69,10 +69,6 @@ def main(args):
                        os.path.isdir(os.path.join(ROOT_DIR, sub_dir)) and
                        sub_dir in person_synsets])
 
-    print(len(sub_dirs))
-
-    return
-
     for sub_dir in sub_dirs:
         joined_sub_dir = os.path.join(ROOT_DIR, sub_dir)
         files = sorted([f for f in os.listdir(joined_sub_dir) if os.path.isfile(os.path.join(joined_sub_dir, f))])
@@ -92,11 +88,9 @@ def main(args):
     fw = open(OUTFILE + '.txt', 'w')
 
     # Inference
-    for i, filename in enumerate(data):
+    for i, (filename, synset_id) in enumerate(zip(data, labels)):
         if i % 1000 == 0:
             print(i)
-
-        synset_id = labels[i]
 
         img_path = os.path.join(ROOT_DIR, os.path.join(synset_id, filename))
         img = np.float32(cv2.imread(img_path, cv2.IMREAD_COLOR))
@@ -104,7 +98,11 @@ def main(args):
         if RESIZE != 1:
             img = cv2.resize(img, None, None, fx=RESIZE, fy=RESIZE, interpolation=cv2.INTER_LINEAR)
 
-        im_height, im_width, _ = img.shape
+        try:
+            im_height, im_width, _ = img.shape
+        except ValueError:
+            print(img_path)
+            continue
 
         scale = torch.Tensor([img.shape[1], img.shape[0], img.shape[1], img.shape[0]])
 
@@ -186,8 +184,6 @@ def main(args):
                     dataset_dict['synsets'][synset] = {}
                     dataset_dict['synsets'][synset]['n_faces'] = 0
                     dataset_dict['synsets'][synset]['images'] = {}
-                    dataset_dict['synsets'][synset]['class'] = id_to_class_dict[synset]['class']
-                    dataset_dict['synsets'][synset]['string'] = id_to_class_dict[synset]['string']
 
             if is_float(lines[j + 1]):
 
