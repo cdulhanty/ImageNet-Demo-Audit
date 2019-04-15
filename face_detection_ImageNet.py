@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-ImageNet Demographics Audit
-# TODO - better inference structure that i can exploit later on for adding to the demographics
+ImageNet Face Detection
 """
 
 __author__ = "Chris Dulhanty"
@@ -21,7 +20,9 @@ from FaceBoxes.utils.box_utils import decode
 from FaceBoxes.data import cfg
 from FaceBoxes.utils.nms_wrapper import nms
 
+ROOT_DIR = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
 ID_TO_CLASS_FILE = 'id_to_class.json'
+OUTFILE = 'inference/ILSVRC2012_training_dets'
 
 FACEBOXES_WEIGHTS_PATH = 'FaceBoxes/weights/FaceBoxes.pth'
 RESIZE = 1.0
@@ -46,15 +47,23 @@ def load_model(model, pretrained_path):
     return model
 
 
+def is_float(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
 def main(args):
 
     data = []
     labels = []
-    sub_dirs = sorted([sub_dir for sub_dir in os.listdir(args.root_dir) if
-                       os.path.isdir(os.path.join(args.root_dir, sub_dir))])
+    sub_dirs = sorted([sub_dir for sub_dir in os.listdir(ROOT_DIR) if
+                       os.path.isdir(os.path.join(ROOT_DIR, sub_dir))])
 
     for sub_dir in sub_dirs:
-        joined_sub_dir = os.path.join(args.root_dir, sub_dir)
+        joined_sub_dir = os.path.join(ROOT_DIR, sub_dir)
         files = sorted([f for f in os.listdir(joined_sub_dir) if os.path.isfile(os.path.join(joined_sub_dir, f))])
         for file in files:
             data.append(file)
@@ -72,10 +81,7 @@ def main(args):
     device = torch.device("cuda")
     net = net.to(device)
 
-    # Create Save File # TODO
-    if not os.path.exists(args.save_folder):
-        os.makedirs(args.save_folder)
-    fw = open(os.path.join(args.save_folder, 'ILSVRC2012_training_dets.txt'), 'w')
+    fw = open(OUTFILE + '.txt', 'w')
 
     # Inference
     for i, filename in enumerate(data):
@@ -83,10 +89,8 @@ def main(args):
             print(i)
 
         synset_id = labels[i]
-        synset_int = id_to_class_dict[synset_id]['class']
-        synset_string = id_to_class_dict[synset_id]['string']
 
-        img_path = os.path.join(args.root_dir, os.path.join(synset_id, filename))
+        img_path = os.path.join(ROOT_DIR, os.path.join(synset_id, filename))
         img = np.float32(cv2.imread(img_path, cv2.IMREAD_COLOR))
 
         if RESIZE != 1:
@@ -103,8 +107,6 @@ def main(args):
         img = img.to(device)
 
         scale = scale.to(device)
-
-        out = net(img)  # forward pass
 
         out = net(img)  # forward pass
         priorbox = PriorBox(cfg, out[2], (im_height, im_width), phase='test')
@@ -150,19 +152,65 @@ def main(args):
 
     fw.close()
 
-    # extract face crops
+    dataset_dict = {}
+    dataset_dict['n_faces'] = 0
+    dataset_dict['synsets'] = {}
 
-    # apply DEX model for apparent gender and age prediction
+    lines = []
 
-    # apply skin mask model
+    with open(OUTFILE + '.txt') as f:
 
-    # convert image to CIE-Lab space, randomly sample n pixels (or do them all?), point-wise calculation of ITA
+        for i, l in enumerate(f):
+            lines.append(l)
+        n_lines = i + 1
+
+        j = 0
+        while j < n_lines:
+
+            if '.JPEG' in lines[j]:
+                image_dict = {}
+                image_dict['n_faces'] = 0
+                image_dict['faces'] = []
+
+                synset = lines[j].split('_')[0]
+
+                if synset not in dataset_dict['synsets']:
+                    dataset_dict['synsets'][synset] = {}
+                    dataset_dict['synsets'][synset]['n_faces'] = 0
+                    dataset_dict['synsets'][synset]['images'] = {}
+                    dataset_dict['synsets'][synset]['class'] = id_to_class_dict[synset]['class']
+                    dataset_dict['synsets'][synset]['string'] = id_to_class_dict[synset]['string']
+
+            if is_float(lines[j + 1]):
+
+                n_detections = int(float(lines[j + 1]))
+
+                for k in range(n_detections):
+                    detection_list = lines[j + 2 + k].split()
+                    detection_dict = {}
+
+                    detection_dict['xmin'] = float(detection_list[0])
+                    detection_dict['ymin'] = float(detection_list[1])
+                    detection_dict['w'] = float(detection_list[2])
+                    detection_dict['h'] = float(detection_list[3])
+                    detection_dict['score'] = float(detection_list[4])
+
+                    image_dict['faces'].append(detection_dict)
+                    image_dict['n_faces'] += 1
+
+                dataset_dict['synsets'][synset]['n_faces'] += image_dict['n_faces']
+                dataset_dict['synsets'][synset]['images'][lines[j].strip()] = image_dict
+                dataset_dict['n_faces'] += image_dict['n_faces']
+
+                j += n_detections + 2
+
+    with open(OUTFILE + '.json', 'w') as f:
+        json.dump(dataset_dict, f)
+
     return
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("root_dir", help="root directory of dataset to be annotated")
-    parser.add_argument("save_folder", help="save_folder")
     args = parser.parse_args()
     main(args)

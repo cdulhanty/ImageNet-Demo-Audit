@@ -72,10 +72,10 @@ def read_image(image_details):  # loads an image and pre-processes
     # TODO - add a buffer if the image goes out of range, b/c making it smaller messes up the image when resizing
     xmin = int(np.round(details['xmin'] - x_add)) if int(np.round(details['xmin'] - x_add)) > 0 else 0
     ymin = int(np.round(details['ymin'] - y_add)) if int(np.round(details['ymin'] - y_add)) > 0 else 0
-    xmax = xmin + int(np.round(details['w'] + 2 * x_add)) if xmin + int(
-        np.round(details['w'] + 2 * x_add)) < img_width else img_width
-    ymax = ymin + int(np.round(details['h'] + 2 * y_add)) if ymin + int(
-        np.round(details['h'] + 2 * y_add)) < img_height else img_height
+    xmax = xmin + int(np.round(details['w'] + 2 * x_add)) if \
+           xmin + int(np.round(details['w'] + 2 * x_add)) < img_width else img_width
+    ymax = ymin + int(np.round(details['h'] + 2 * y_add)) if \
+           ymin + int(np.round(details['h'] + 2 * y_add)) < img_height else img_height
 
     face = img[ymin:ymax, xmin:xmax].copy()
 
@@ -106,8 +106,8 @@ def main(args):
 
     n_faces = len(detection_dict['images'])
 
-    # prepare the apparent age model -> 0 for female, 1 for male
-    gender_model = torch.load(GENDER_MODEL_PTH_FILE)
+    # prepare the apparent age model
+    gender_model = torch.load(GENDER_MODEL_PTH_FILE)  # 0 for female, 1 for male
     gender_model.eval()
     gender_model.to(device)
 

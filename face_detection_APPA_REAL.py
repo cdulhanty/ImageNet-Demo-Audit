@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-APPA_REAL Demographics Audit
+APPA_REAL Face Detection
 """
 
 __author__ = "Chris Dulhanty"
@@ -56,9 +56,6 @@ def is_float(s):
 
 def main(args):
 
-    data = []
-    labels = []
-
     file_list = sorted([f for f in os.listdir(TEST_IMAGE_ROOT) if
                         os.path.isfile(os.path.join(TEST_IMAGE_ROOT, f)) and
                         '.jpg' in f and '_face' not in f and 'mat' not in f])  # Just the
@@ -97,8 +94,6 @@ def main(args):
         img = img.to(device)
 
         scale = scale.to(device)
-
-        out = net(img)  # forward pass
 
         out = net(img)  # forward pass
         priorbox = PriorBox(cfg, out[2], (im_height, im_width), phase='test')
