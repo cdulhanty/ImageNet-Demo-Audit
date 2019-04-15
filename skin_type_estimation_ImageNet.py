@@ -22,23 +22,17 @@ DETECTION_JSON = 'inference/ILSVRC2012_training_dets.json'
 TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
 OUTFILE = 'inference/ILSVRC2012_training_skin_type.json'
 
+SKIN_MASK_THRESHOLD = 0.999  # TODO - determine the optimal value (ECU dataset?)
 DETECTION_THRESHOLD = 0.9  # TODO - determine the optimal level (TP/FP on diff groups?)
 FACE_BUFFER = 0.4
 
 WIDTH = 224
 HEIGHT = 224
 N_CHANNELS = 3
-INFERENCE_BATCH_SIZE = 512
+INFERENCE_BATCH_SIZE = 64
 
 
-def ITA(pixel):
-
-    # TODO - might actually pass in something like (1, 1, 1) - need to extract the correct value from this
-
-    L = pixel[0]
-    a = pixel[1]
-    b = pixel[2]
-
+def ITA(L, b):
     return (np.arctan((L - 50)/b) * 180)/np.pi
 
 
@@ -78,6 +72,7 @@ def read_image(image_details):  # loads an image and pre-processes
            ymin + int(np.round(details['h'] + 2 * y_add)) < img_height else img_height
 
     face = img[ymin:ymax, xmin:xmax].copy()
+
     cie_lab_face = face.copy()
 
     # TODO face alignment here - with DLIB?
@@ -132,23 +127,54 @@ def main(args):
 
                         for skin_mask, cie_lab_image, batch_item in zip(skin_masks, cie_lab_image_batch, batch_list):
 
-                            print(cie_lab_image[50])
+                            """
+                            for threshold in [0.5, 0.9, 0.99, 0.999, 0.9999, 0.99999, 0.999999, 0.9999999]:
+                                mask_vector = skin_mask.flatten()
+                                mask_vector[mask_vector >= threshold] = 1
+                                mask_vector[mask_vector < threshold] = 0
 
+                                # extract mean L and b values for input into ITA calculation
+                                l_vector = cie_lab_image[:, :, 0].flatten()
+                                l_vector_masked = l_vector * mask_vector
+
+                                l_values = l_vector_masked[l_vector_masked > 0]
+
+                                if len(l_values) > 0:
+
+                                    l_mean = np.mean(l_values)
+
+                                    b_vector = cie_lab_image[:, :, 2].flatten()
+                                    b_vector_masked = b_vector * mask_vector
+                                    b_values = b_vector_masked[b_vector_masked > 0]
+                                    b_mean = np.mean(b_values)
+
+                                    ita = ITA(l_mean, b_mean)
+
+                                    print(threshold, len(l_values), ita)
+                                else:
+                                    print(threshold, '0', '???')
+                            """
+                            # Threshold the skin mask @ the designated threshold
+                            mask_vector = skin_mask.flatten()
+
+                            mask_vector[mask_vector >= SKIN_MASK_THRESHOLD] = 1
+                            mask_vector[mask_vector < SKIN_MASK_THRESHOLD] = 0
+
+                            # extract mean L and b values for input into ITA calculation
                             l_vector = cie_lab_image[:, :, 0].flatten()
-                            b_l = cie_lab_image[:, :, 2].flatten()
+                            l_vector_masked = l_vector * mask_vector
 
+                            l_values = l_vector_masked[l_vector_masked > 0]
+                            l_mean = np.mean(l_values)
 
+                            b_vector = cie_lab_image[:, :, 2].flatten()
+                            b_vector_masked = b_vector * mask_vector
+                            b_values = b_vector_masked[b_vector_masked > 0]
+                            b_mean = np.mean(b_values)
 
-
-                            return
-                            # TODO - run the dlib function?
-                            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
-                            # TODO - add calculated ITA value to the dataset_dict
-
-                            ita = 1.0
+                            ita = ITA(l_mean, b_mean)
 
                             filepath = batch_item[0]
-
                             synset_filename = filepath.split(TRAINING_ROOT)[1]
                             synset, filename = synset_filename.split('/')
 
@@ -166,8 +192,44 @@ def main(args):
 
     if len(batch_list) > 0:
 
-        # TODO - copy from above
-        pass
+        print('Batch', batch_no, 'of', n_batches)
+        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
+        skin_masks = model.predict(image_batch)  # run the skin segmentation model
+
+        for skin_mask, cie_lab_image, batch_item in zip(skin_masks, cie_lab_image_batch, batch_list):
+
+            # Threshold the skin mask @ the designated threshold
+            mask_vector = skin_mask.flatten()
+
+            mask_vector[mask_vector >= SKIN_MASK_THRESHOLD] = 1
+            mask_vector[mask_vector < SKIN_MASK_THRESHOLD] = 0
+
+            # extract mean L and b values for input into ITA calculation
+            l_vector = cie_lab_image[:, :, 0].flatten()
+            l_vector_masked = l_vector * mask_vector
+
+            l_values = l_vector_masked[l_vector_masked > 0]
+            l_mean = np.mean(l_values)
+
+            b_vector = cie_lab_image[:, :, 2].flatten()
+            b_vector_masked = b_vector * mask_vector
+            b_values = b_vector_masked[b_vector_masked > 0]
+            b_mean = np.mean(b_values)
+
+            ita = ITA(l_mean, b_mean)
+
+            filepath = batch_item[0]
+            synset_filename = filepath.split(TRAINING_ROOT)[1]
+            synset, filename = synset_filename.split('/')
+
+            if 'ITA' not in dataset_dict['synsets'][synset]['images'][filename]:
+                dataset_dict['synsets'][synset]['images'][filename]['ITA'] = []
+
+            dataset_dict['synsets'][synset]['images'][filename]['ITA'].append(ita)
+
+        del image_batch
+        del cie_lab_image_batch
+        del skin_masks
 
     out_json = json.dumps(dataset_dict)
     with open(OUTFILE, 'w') as f:

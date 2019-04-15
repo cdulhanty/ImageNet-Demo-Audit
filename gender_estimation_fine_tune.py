@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Apparent Age Estimation Model - Validation on _APPA_REAL
+Apparent Gender Estimation Model - Fine-Tune on DiF
 """
 
 __author__ = "Chris Dulhanty"
@@ -16,15 +16,18 @@ import os
 import numpy as np
 import cv2
 
-AGE_MODEL_PY_FILE = '/media/chris/Mammoth/DEX/age.py'
-AGE_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/age.pth'
+GENDER_MODEL_PY_FILE = '/media/chris/Mammoth/DEX/gender.py'
+GENDER_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/gender.pth'
 
-DETECTION_JSON = 'validation/APPA_REAL_test_dets.json'
+
+
+TEST_DETECTION_JSON = 'validation/APPA_REAL_test_dets.json'
 TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/test/'
-TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/gt_avg_test.csv'
-OUTFILE = 'validation/APPA_REAL_age.json'
+TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/allcategories_trainvalidtest_split/allcategories_test.csv'
 
-AgeModel = imp.load_source('MainModel', AGE_MODEL_PY_FILE)
+GENDER_MODEL_OUTPUT = '/media/chris/Mammoth/DEX/gender_fine_tuned.pth'
+
+GenderModel = imp.load_source('MainModel', GENDER_MODEL_PY_FILE)
 
 FACE_BUFFER = 0.4
 WIDTH = 224
@@ -72,10 +75,10 @@ def read_image(image_details):  # loads an image and pre-processes
     # TODO - add a buffer if the image goes out of range, b/c making it smaller messes up the image when resizing
     xmin = int(np.round(details['xmin'] - x_add)) if int(np.round(details['xmin'] - x_add)) > 0 else 0
     ymin = int(np.round(details['ymin'] - y_add)) if int(np.round(details['ymin'] - y_add)) > 0 else 0
-    xmax = xmin + int(np.round(details['w'] + 2 * x_add)) if xmin + int(
-        np.round(details['w'] + 2 * x_add)) < img_width else img_width
-    ymax = ymin + int(np.round(details['h'] + 2 * y_add)) if ymin + int(
-        np.round(details['h'] + 2 * y_add)) < img_height else img_height
+    xmax = xmin + int(np.round(details['w'] + 2 * x_add)) if \
+           xmin + int(np.round(details['w'] + 2 * x_add)) < img_width else img_width
+    ymax = ymin + int(np.round(details['h'] + 2 * y_add)) if \
+           ymin + int(np.round(details['h'] + 2 * y_add)) < img_height else img_height
 
     face = img[ymin:ymax, xmin:xmax].copy()
 
@@ -93,12 +96,18 @@ def main(args):
 
     device = "cuda:0"
 
-    with open(DETECTION_JSON) as f:
+    # Prepare Training Data - Diversity in Images Training Set
+
+    pass # TODO
+
+    # Prepare Validation Data - APPA-REAL Test Set
+
+    with open(TEST_DETECTION_JSON) as f:
         detection_dict = json.load(f)
 
     df = pd.read_csv(TEST_LABEL_ROOT)
-    df['file_name'] = df['file_name'].str.replace(r'.jpg$', '')
-    df = df.set_index('file_name')
+    df['file'] = df['file'].str.replace(r'.jpg$', '')
+    df = df.set_index('file')
     dataset_dict = df.to_dict(orient='index')
 
     for key in dataset_dict.keys():
@@ -107,22 +116,30 @@ def main(args):
     n_faces = len(detection_dict['images'])
 
     # prepare the apparent age model
-    age_model = torch.load(AGE_MODEL_PTH_FILE)
-    age_model.eval()
-    age_model.to(device)
+    gender_model = torch.load(GENDER_MODEL_PTH_FILE)  # 0 for female, 1 for male
+    gender_model.to(device)
+
+    for i in range(N_EPOCHS):
+
+        for state in ['train', 'val']:
+
+            pass  # TODO
+
 
     n_batches = int(np.ceil(n_faces/float(INFERENCE_BATCH_SIZE)))
 
     batch_no = 1
     batch_list = []
-    abs_err_running = 0
+    n_correct = 0
     for image in sorted(detection_dict['images'].keys()):
 
         if len(detection_dict['images'][image]['faces']) > 0:
             face = detection_dict['images'][image]['faces'][0]  # TODO better method???
+
             filepath = os.path.join(TEST_IMAGE_ROOT, image + '.jpg')
             batch_list.append((filepath, face))
         else:
+            n_correct -= 1
             print(filepath)
 
         if len(batch_list) == INFERENCE_BATCH_SIZE:
@@ -132,18 +149,21 @@ def main(args):
             image_batch = torch.from_numpy(image_batch).type(torch.FloatTensor)
             image_batch = image_batch.to(device)
 
-            age_outputs = age_model(image_batch)
-            age_preds = expectation(age_outputs.cpu())
+            gender_outputs = gender_model(image_batch)
+            gender_preds = expectation(gender_outputs.cpu())
 
-            for age_pred, batch_item in zip(age_preds, batch_list):
+            for gender_pred, batch_item in zip(gender_preds, batch_list):
 
                 filepath = batch_item[0]
 
                 file_id = filepath.split(TEST_IMAGE_ROOT)[1].split('.')[0]
-                appa_age = dataset_dict[file_id]['apparent_age_avg']
-                abs_err = np.abs(appa_age - age_pred)
-                abs_err_running += abs_err
-                dataset_dict[file_id]['preds']['DEX'] = {'pred': age_pred, 'abs_err': abs_err}
+                appa_gender_str = dataset_dict[file_id]['gender']
+                appa_gender = 0 if appa_gender_str == 'female' else 1
+                gender_pred = 0 if gender_pred < 0.50 else 1
+
+                if appa_gender == gender_pred:
+                    n_correct += 1
+                dataset_dict[file_id]['preds']['DEX'] = {'pred': gender_pred}
 
             batch_no += 1
             batch_list = []
@@ -157,21 +177,25 @@ def main(args):
         image_batch = torch.from_numpy(image_batch).type(torch.FloatTensor)
         image_batch = image_batch.to(device)
 
-        age_outputs = age_model(image_batch)
-        ages_preds = expectation(age_outputs.cpu())
+        gender_outputs = gender_model(image_batch)
+        gender_preds = expectation(gender_outputs.cpu())
 
-        for age_pred, batch_item in zip(age_preds, batch_list):
+        for gender_pred, batch_item in zip(gender_preds, batch_list):
+
             filepath = batch_item[0]
 
             file_id = filepath.split(TEST_IMAGE_ROOT)[1].split('.')[0]
-            appa_age = dataset_dict[file_id]['apparent_age_avg']
-            abs_err = np.abs(appa_age - age_pred)
-            abs_err_running += abs_err
-            dataset_dict[file_id]['preds']['DEX'] = {'pred': age_pred, 'abs_err': abs_err}
+            appa_gender_str = dataset_dict[file_id]['gender']
+            appa_gender = 0 if appa_gender_str == 'female' else 1
+            gender_pred = 0 if gender_pred < 0.50 else 1
+
+            if appa_gender == gender_pred:
+                n_correct += 1
+            dataset_dict[file_id]['preds']['DEX'] = {'pred': gender_pred}
 
         del image_batch
 
-    print('MAE', abs_err_running/float(n_faces))
+    print('Accuracy:', n_correct/float(n_faces))
 
     out_json = json.dumps(dataset_dict)
     with open(OUTFILE, 'w') as f:

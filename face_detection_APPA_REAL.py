@@ -21,7 +21,7 @@ from FaceBoxes.data import cfg
 from FaceBoxes.utils.nms_wrapper import nms
 
 TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/test/'
-OUTFILE = 'inference/APPA_REAL_test_dets'
+OUTFILE = 'validation/APPA_REAL_test_dets'
 
 FACEBOXES_WEIGHTS_PATH = 'FaceBoxes/weights/FaceBoxes.pth'
 RESIZE = 1.0

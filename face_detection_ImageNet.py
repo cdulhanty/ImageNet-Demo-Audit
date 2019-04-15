@@ -21,7 +21,7 @@ from FaceBoxes.data import cfg
 from FaceBoxes.utils.nms_wrapper import nms
 
 ROOT_DIR = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
-ID_TO_CLASS_FILE = 'id_to_class.json'
+ID_TO_CLASS_FILE = 'ILSVRC_files/id_to_class.json'
 OUTFILE = 'inference/ILSVRC2012_training_dets'
 
 FACEBOXES_WEIGHTS_PATH = 'FaceBoxes/weights/FaceBoxes.pth'

@@ -8,10 +8,10 @@ import json
 from torch.utils.data import Dataset
 from skimage import io
 
-ID_TO_CLASS_FILE = 'id_to_class.json'
-CLASS_TO_ID_FILE = 'class_to_id.json'
+ID_TO_CLASS_FILE = 'ILSVRC_files/id_to_class.json'
+CLASS_TO_ID_FILE = 'ILSVRC_files/class_to_id.json'
 
-VAL_LABEL_FILE = 'imagenet_2012_validation_synset_labels.txt'
+VAL_LABEL_FILE = 'ILSVRC_files/imagenet_2012_validation_synset_labels.txt'
 
 
 class ImageNetTrainDataset(Dataset):
