@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Skin Segmentation and ITA Calculation Model
+Skin Segmentation Model and ITA Calculation
 """
 
 __author__ = "Chris Dulhanty"
@@ -15,10 +15,12 @@ import numpy as np
 import cv2
 from keras.applications.densenet import preprocess_input
 
-TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
 MODEL_JSON_FILE = 'segmentation_keras_tensorflow/skinseg.json'
 MODEL_WEIGHTS_FILE = 'segmentation_keras_tensorflow/skinseg.h5'
-OUTFILE = 'inference/ITA.txt'
+
+DETECTION_JSON = 'inference/ILSVRC2012_training_dets.json'
+TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
+OUTFILE = 'inference/ILSVRC2012_training_skin_type.json'
 
 DETECTION_THRESHOLD = 0.9  # TODO - determine the optimal level (TP/FP on diff groups?)
 FACE_BUFFER = 0.4
@@ -70,18 +72,21 @@ def read_image(image_details):  # loads an image and pre-processes
     # TODO - add a buffer if the image goes out of range, b/c making it smaller messes up the image when resizing
     xmin = int(np.round(details['xmin'] - x_add)) if int(np.round(details['xmin'] - x_add)) > 0 else 0
     ymin = int(np.round(details['ymin'] - y_add)) if int(np.round(details['ymin'] - y_add)) > 0 else 0
-    xmax = xmin + int(np.round(details['w'] + 2*x_add)) if xmin + int(np.round(details['w'] + 2*x_add)) < img_width else img_width
-    ymax = ymin + int(np.round(details['h'] + 2*y_add)) if ymin + int(np.round(details['h'] + 2*y_add)) < img_height else img_height
+    xmax = xmin + int(np.round(details['w'] + 2 * x_add)) if \
+           xmin + int(np.round(details['w'] + 2 * x_add)) < img_width else img_width
+    ymax = ymin + int(np.round(details['h'] + 2 * y_add)) if \
+           ymin + int(np.round(details['h'] + 2 * y_add)) < img_height else img_height
 
     face = img[ymin:ymax, xmin:xmax].copy()
     cie_lab_face = face.copy()
 
+    # TODO face alignment here - with DLIB?
     face = cv2.resize(face, (HEIGHT, WIDTH))  # TODO resize in a better way (keep the aspect ratio?)
     face = face.astype("float32")
     face = preprocess_input(face, data_format='channels_last')
 
-    cie_lab_face = cv2.cvtColor(cie_lab_face, cv2.COLOR_RGB2LAB)
-    cie_lab_face = cv2.resize(cie_lab_face, (HEIGHT, WIDTH))
+    cie_lab_face = cv2.cvtColor(cie_lab_face, cv2.COLOR_RGB2LAB)  # convert to the CIE L*A*B colorspace
+    cie_lab_face = cv2.resize(cie_lab_face, (HEIGHT, WIDTH))  #
     cie_lab_face = cie_lab_face.astype("float32")
 
     return face, cie_lab_face
@@ -89,7 +94,7 @@ def read_image(image_details):  # loads an image and pre-processes
 
 def main(args):
 
-    with open('inference/ILSVRC2012_training_dets.json') as f:
+    with open(DETECTION_JSON) as f:
         dataset_dict = json.load(f)
 
     # count the number of valid face detections
@@ -114,7 +119,7 @@ def main(args):
         for image in sorted(dataset_dict['synsets'][synset]['images'].keys()):
             for face in dataset_dict['synsets'][synset]['images'][image]['faces']:
 
-                if face['score'] > DETECTION_THRESHOLD:  # TODO - should we reject any small faces ('w' < 20 or 'h' < 20)??
+                if face['score'] > DETECTION_THRESHOLD:  # TODO - should we reject any small faces? ('w' or 'h' < 20)
 
                     filepath = os.path.join(TRAINING_ROOT, os.path.join(synset, image))
                     batch_list.append((filepath, face))
@@ -125,12 +130,32 @@ def main(args):
                         image_batch, cie_lab_image_batch = read_image_batch(batch_list)
                         skin_masks = model.predict(image_batch)  # run the skin segmentation model
 
-                        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
+                        for skin_mask, cie_lab_image, batch_item in zip(skin_masks, cie_lab_image_batch, batch_list):
 
+                            print(cie_lab_image[50])
+
+                            l_vector = cie_lab_image[:, :, 0].flatten()
+                            b_l = cie_lab_image[:, :, 2].flatten()
+
+
+
+
+                            return
                             # TODO - run the dlib function?
                             # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
                             # TODO - add calculated ITA value to the dataset_dict
-                            pass
+
+                            ita = 1.0
+
+                            filepath = batch_item[0]
+
+                            synset_filename = filepath.split(TRAINING_ROOT)[1]
+                            synset, filename = synset_filename.split('/')
+
+                            if 'ITA' not in dataset_dict['synsets'][synset]['images'][filename]:
+                                dataset_dict['synsets'][synset]['images'][filename]['ITA'] = []
+
+                            dataset_dict['synsets'][synset]['images'][filename]['ITA'].append(ita)
 
                         batch_no += 1
                         batch_list = []
@@ -141,21 +166,13 @@ def main(args):
 
     if len(batch_list) > 0:
 
-        print('Batch', batch_no, 'of', n_batches)
-        image_batch, cie_lab_image_batch = read_image_batch(batch_list)
-        skin_masks = model.predict(image_batch)  # run the skin segmentation model
+        # TODO - copy from above
+        pass
 
-        for skin_mask, cie_lab_image in zip(skin_masks, cie_lab_image_batch):
-            # TODO - run the dlib function?
-            # TODO - determine how to select the pixels to extract, how to filter, and pass to ITA()
-            # TODO - add calculated ITA value to the dataset_dict
-            pass
+    out_json = json.dumps(dataset_dict)
+    with open(OUTFILE, 'w') as f:
+        f.write(out_json)
 
-        del image_batch
-        del cie_lab_image_batch
-        del skin_masks
-
-    print('goodbye')
     return
 
 

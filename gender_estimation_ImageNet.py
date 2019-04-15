@@ -20,7 +20,7 @@ GENDER_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/gender.pth'
 
 DETECTION_JSON = 'inference/ILSVRC2012_training_dets.json'
 TRAINING_ROOT = '/media/chris/Datasets/ILSVRC/imagenet_object_localization/ILSVRC/Data/CLS-LOC/train/'
-OUTFILE = 'inference/ILSVRC2012_training_gender.json'
+OUTFILE = 'inference/ILSVRC2012_training_gender_DEX.json'
 
 GenderModel = imp.load_source('MainModel', GENDER_MODEL_PY_FILE)
 
@@ -30,7 +30,7 @@ FACE_BUFFER = 0.4
 WIDTH = 224
 HEIGHT = 224
 N_CHANNELS = 3
-INFERENCE_BATCH_SIZE = 1
+INFERENCE_BATCH_SIZE = 30
 
 
 def expectation(outputs):
@@ -138,18 +138,15 @@ def main(args):
                             synset_filename = filepath.split(TRAINING_ROOT)[1]
                             synset, filename = synset_filename.split('/')
 
-                            if 'gender_preds' not in dataset_dict['synsets'][synset]['images'][image]:
-                                dataset_dict['synsets'][synset]['images'][image]['gender_preds'] = []
+                            if 'gender_preds' not in dataset_dict['synsets'][synset]['images'][filename]:
+                                dataset_dict['synsets'][synset]['images'][filename]['gender_preds'] = []
 
-                            dataset_dict['synsets'][synset]['images'][image]['gender_preds'].append(gender_pred)
+                            dataset_dict['synsets'][synset]['images'][filename]['gender_preds'].append(gender_pred)
 
                         batch_no += 1
                         batch_list = []
 
                         del image_batch
-                break
-            break
-        break
 
     if len(batch_list) > 0:
 
@@ -168,10 +165,10 @@ def main(args):
             synset_filename = filepath.split(TRAINING_ROOT)[1]
             synset, filename = synset_filename.split('/')
 
-            if 'gender_preds' not in dataset_dict['synsets'][synset]['images'][image]:
-                dataset_dict['synsets'][synset]['images'][image]['gender_preds'] = []
+            if 'gender_preds' not in dataset_dict['synsets'][synset]['images'][filename]:
+                dataset_dict['synsets'][synset]['images'][filename]['gender_preds'] = []
 
-            dataset_dict['synsets'][synset]['images'][image]['gender_preds'].append(gender_pred)
+            dataset_dict['synsets'][synset]['images'][filename]['gender_preds'].append(gender_pred)
 
         del image_batch
 
