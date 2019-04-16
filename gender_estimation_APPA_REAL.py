@@ -19,10 +19,10 @@ import cv2
 GENDER_MODEL_PY_FILE = '/media/chris/Mammoth/DEX/gender.py'
 GENDER_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/gender.pth'
 
-DETECTION_JSON = 'inference/APPA_REAL_test_dets.json'
-TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/test/'
-TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/allcategories_trainvalidtest_split/allcategories_test.csv'
-OUTFILE = 'validation/APPA_REAL_gender.json'
+DETECTION_JSON = 'validation/APPA_REAL_valid_dets.json'
+TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/valid/'
+TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/allcategories_trainvalidtest_split/allcategories_valid.csv'
+OUTFILE = 'validation/APPA_REAL_valid_gender.json'
 
 GenderModel = imp.load_source('MainModel', GENDER_MODEL_PY_FILE)
 

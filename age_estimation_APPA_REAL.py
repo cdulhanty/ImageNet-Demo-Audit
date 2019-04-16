@@ -19,10 +19,10 @@ import cv2
 AGE_MODEL_PY_FILE = '/media/chris/Mammoth/DEX/age.py'
 AGE_MODEL_PTH_FILE = '/media/chris/Mammoth/DEX/age.pth'
 
-DETECTION_JSON = 'validation/APPA_REAL_test_dets.json'
-TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/test/'
-TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/gt_avg_test.csv'
-OUTFILE = 'validation/APPA_REAL_age.json'
+DETECTION_JSON = 'validation/APPA_REAL_valid_dets.json'
+TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/valid/'
+TEST_LABEL_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/gt_avg_valid.csv'
+OUTFILE = 'validation/APPA_REAL_valid_age.json'
 
 AgeModel = imp.load_source('MainModel', AGE_MODEL_PY_FILE)
 

@@ -20,8 +20,8 @@ from FaceBoxes.utils.box_utils import decode
 from FaceBoxes.data import cfg
 from FaceBoxes.utils.nms_wrapper import nms
 
-TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/test/'
-OUTFILE = 'validation/APPA_REAL_test_dets'
+TEST_IMAGE_ROOT = '/media/chris/Mammoth/ChaLearn/appa-real-release/valid/'
+OUTFILE = 'validation/APPA_REAL_valid_dets'
 
 FACEBOXES_WEIGHTS_PATH = 'FaceBoxes/weights/FaceBoxes.pth'
 RESIZE = 1.0
