@@ -69,12 +69,18 @@ def main(args):
                        os.path.isdir(os.path.join(ROOT_DIR, sub_dir)) and
                        sub_dir in person_synsets])
 
+    print(len(sub_dirs))
+
     for sub_dir in sub_dirs:
         joined_sub_dir = os.path.join(ROOT_DIR, sub_dir)
         files = sorted([f for f in os.listdir(joined_sub_dir) if os.path.isfile(os.path.join(joined_sub_dir, f))])
         for file in files:
             data.append(file)
             labels.append(sub_dir)
+
+    print(len(data))
+
+    """
 
     # Face Detection Model - FaceBox
     torch.set_grad_enabled(False)
@@ -210,7 +216,7 @@ def main(args):
 
     with open(OUTFILE + '.json', 'w') as f:
         json.dump(dataset_dict, f)
-
+    """
     return
 
 
