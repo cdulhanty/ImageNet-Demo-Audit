@@ -48,14 +48,6 @@ cd ../face-eval/
 python2 plot_AP_fddb.py ../evaluation/[group]DiscROC.txt
 ~~~~
 
-Then run on ImageNet via face_detection.py
-
-## Skin Segmentation via [Codella et at.](https://arxiv.org/pdf/1804.05944.pdf)  
-~~~~
-git clone https://github.com/noelcodella/segmentation-keras-tensorflow.git
-rndir segmentation-keras-tensorflow segmentation_keras_tensorflow
-~~~~
-
 ## Apparent Age and Gender Estimation via [DEX](https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/)
 
 Download the pre-trained age and gender estimation models, convert to PyTorch via [Google Colab](https://colab.research.google.com/drive/1l4Z7_IjTG7Z1KpmhyWFEWlozxM9CvJn_)
