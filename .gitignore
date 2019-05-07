@@ -104,8 +104,8 @@ ENV/
 # datsets
 FaceBoxes/data/FDDB/images/*
 
-# predictions
-inference/*
-
 # weight files
 *.h5
+
+# preds
+inference/*
