@@ -15,6 +15,10 @@ Create a Kaggle account and download the ILSVRC images (155 GB) [here](https://w
  ~~~~
  tar -xzvf imagenet_object_localization.tar.gz
  ~~~~
+ 
+### ImageNet 'person' Synset Download
+
+ImageNet Fall 2011 Release available at [academic torrents](http://academictorrents.com/details/564a77c1e1119da199ff32622a1609431b9f1c47).
 
 ### Package Installation
 
@@ -26,8 +30,6 @@ pip install -r requirements.txt
 
 ### Face Detection via [FaceBoxes](https://arxiv.org/abs/1708.05234) 
 ~~~~
-git clone https://github.com/zisianw/FaceBoxes.PyTorch.git
-rn FaceBoxes.PyTorch FaceBoxes
 cd FaceBoxes
 ./make.sh
 ~~~~
@@ -37,6 +39,22 @@ Download FaceBoxes weights from [Google Drive](https://drive.google.com/open?id=
 
 ### Apparent Age and Gender Estimation via [DEX](https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/)
 
-Download the pre-trained age and gender estimation models, convert to PyTorch via this [Google Colab Page](https://colab.research.google.com/drive/1l4Z7_IjTG7Z1KpmhyWFEWlozxM9CvJn_)
+Download the pre-trained age and gender estimation models available at the above link, specifically:
 
-Download [age.py, age.pth. gender.py, gender.pth]
+- Apparent age estimation trained on LAP dataset: **.caffemodel** and **age.prototxt**
+- Gender prediction: **.caffemodel** and **gender.prototxt**
+
+Convert to PyTorch models via this [Google Colab Page](https://colab.research.google.com/drive/1l4Z7_IjTG7Z1KpmhyWFEWlozxM9CvJn_)
+
+Download age.py, age.pth. gender.py, gender.pth
+
+
+### Run Detection & Annotation scripts
+Edit file paths in source code for model weights and data locations (TODO: add argparse for command-line input)
+
+~~~~
+python face_detection_ImageNet.py
+python age_estimation_ImageNet.py
+python gender_estimation_ImageNet.py
+~~~~
+Repeat for person synset.
